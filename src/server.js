@@ -27,8 +27,11 @@ app.get('/notes/:noteId', (req, res) => {
   });
 });
 
-app.get('/test-error', (req, res) => {
-  throw new Error('Simulated server error');
+app.get('/test-error', (req, res, next) => {
+  void req;
+  void res;
+
+  next(new Error('Simulated server error'));
 });
 
 app.use((req, res) => {
@@ -38,6 +41,9 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  void req;
+  void next;
+
   res.status(500).json({
     message: err.message,
   });
