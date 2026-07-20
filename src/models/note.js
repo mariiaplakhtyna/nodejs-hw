@@ -9,19 +9,28 @@ const noteSchema = new Schema(
     },
     content: {
       type: String,
-      required: true,
-      trim: true,
+      default: '',
     },
     tag: {
       type: String,
-      enum: ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'],
+      enum: [
+        'Work',
+        'Personal',
+        'Meeting',
+        'Shopping',
+        'Ideas',
+        'Travel',
+        'Finance',
+        'Health',
+        'Important',
+        'Todo',
+      ],
       default: 'Personal',
     },
   },
   {
     timestamps: true,
-    versionKey: false,
   },
 );
 
-export const Note = model('note', noteSchema);
+export const Note = model('Note', noteSchema);
