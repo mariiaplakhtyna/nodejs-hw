@@ -22,7 +22,7 @@ export const deleteNote = async (noteId) => {
 
 export const updateNote = async (noteId, payload) => {
   const note = await Note.findByIdAndUpdate(noteId, payload, {
-    new: true,
+    returnDocument: 'after',
   });
 
   return note;
