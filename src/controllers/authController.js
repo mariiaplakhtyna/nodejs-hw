@@ -7,7 +7,7 @@ import path from 'node:path';
 
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
-import { sendMail } from '../utils/sendMail.js';
+import { sendEmail } from '../utils/sendMail.js';
 import {
   createSession,
   setSessionCookies,
@@ -44,7 +44,10 @@ export const loginUser = async (req, res) => {
     throw createHttpError(401, 'Invalid credentials');
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.password);
+  const passwordMatches = await bcrypt.compare(
+    password,
+    user.password,
+  );
 
   if (!passwordMatches) {
     throw createHttpError(401, 'Invalid credentials');
@@ -71,14 +74,14 @@ export const refreshUserSession = async (req, res) => {
   }
 
   if (session.refreshTokenValidUntil < new Date()) {
-  await Session.findByIdAndDelete(session._id);
+    await Session.findByIdAndDelete(session._id);
 
-  res.clearCookie('sessionId');
-  res.clearCookie('refreshToken');
-  res.clearCookie('accessToken');
+    res.clearCookie('sessionId');
+    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken');
 
-  throw createHttpError(401, 'Session expired');
-}
+    throw createHttpError(401, 'Session expired');
+  }
 
   await Session.deleteOne({ _id: session._id });
 
@@ -109,13 +112,19 @@ export const logoutUser = async (req, res) => {
 
   res.status(204).send();
 };
+
 export const requestResetEmail = async (req, res) => {
   const { email } = req.body;
 
   const user = await User.findOne({ email });
 
+  const successMessage = {
+    message:
+      'If the email is registered, a reset link has been sent',
+  };
+
   if (!user) {
-    throw createHttpError(404, 'User not found');
+    return res.status(200).json(successMessage);
   }
 
   const token = jwt.sign(
@@ -136,23 +145,36 @@ export const requestResetEmail = async (req, res) => {
     'reset-password-email.html',
   );
 
-  const templateSource = await fs.readFile(templatePath, 'utf-8');
+  const templateSource = await fs.readFile(
+    templatePath,
+    'utf-8',
+  );
+
   const template = handlebars.compile(templateSource);
 
-  const link = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`;
+  const link =
+    `${process.env.FRONTEND_DOMAIN}` +
+    `/reset-password?token=${token}`;
 
-  const html = template({ link });
-
-  await sendMail({
-    to: email,
-    subject: 'Reset your password',
-    html,
+  const html = template({
+    name: user.username || user.email,
+    link,
   });
 
-  res.status(200).json({
-    message: 'Password reset email sent successfully',
-  });
+  try {
+    await sendEmail({
+      from: process.env.SMTP_FROM,
+      to: user.email,
+      subject: 'Reset your password',
+      html,
+    });
+  } catch {
+    throw createHttpError(500, 'Failed to send the email');
+  }
+
+  return res.status(200).json(successMessage);
 };
+
 export const resetPassword = async (req, res) => {
   const { token, password } = req.body;
 
@@ -164,7 +186,10 @@ export const resetPassword = async (req, res) => {
     throw createHttpError(401, 'Invalid or expired token');
   }
 
-  const user = await User.findById(payload.sub);
+  const user = await User.findOne({
+    _id: payload.sub,
+    email: payload.email,
+  });
 
   if (!user) {
     throw createHttpError(404, 'User not found');
