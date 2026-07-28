@@ -10,7 +10,7 @@ import { logger } from './middleware/logger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import notesRouter from './routes/notesRoutes.js';
-
+import userRouter from './routes/userRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -24,6 +24,7 @@ app.use(logger);
 
 app.use(notesRouter);
 app.use(authRouter);
+app.use(userRouter);
 
 app.use(notFoundHandler);
 app.use(errors());
